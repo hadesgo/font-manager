@@ -1,0 +1,96 @@
+#include <stdlib.h>
+#include <napi.h>
+#include <string>
+#include "FontDescriptor.h"
+
+// these functions are implemented by the platform
+ResultSet *getAvailableFonts();
+ResultSet *findFonts(FontDescriptor *);
+FontDescriptor *findFont(FontDescriptor *);
+FontDescriptor *substituteFont(char *, char *);
+
+// converts a ResultSet to a JavaScript array
+Napi::Array collectResults(Napi::Env env, ResultSet *results)
+{
+  Napi::Array res = Napi::Array::New(env, results->size());
+
+  int i = 0;
+  for (ResultSet::iterator it = results->begin(); it != results->end(); it++)
+  {
+    res.Set(i++, (*it)->toJSObject(env));
+  }
+
+  delete results;
+  return res;
+}
+
+// converts a FontDescriptor to a JavaScript object
+Napi::Value wrapResult(Napi::Env env, FontDescriptor *result)
+{
+  if (result == NULL)
+    return Napi::Number::New(env, NULL);
+
+  Napi::Object res = result->toJSObject(env);
+  delete result;
+  return res;
+}
+
+Napi::Array getAvailableFontsSync(const Napi::CallbackInfo &info)
+{
+  Napi::Env env = info.Env();
+  return collectResults(env, getAvailableFonts());
+}
+
+Napi::Array findFontsSync(const Napi::CallbackInfo &info)
+{
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsObject() || info[0].IsFunction())
+    throw Napi::Error::New(env, "Expected a font descriptor");
+  Napi::Object desc = info[0].As<Napi::Object>();
+  FontDescriptor *descriptor = new FontDescriptor(env, desc);
+  return collectResults(env, findFonts(descriptor));
+}
+
+Napi::Value findFontSync(const Napi::CallbackInfo &info)
+{
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsObject() || info[0].IsFunction())
+    throw Napi::Error::New(env, "Expected a font descriptor");
+
+  Napi::Object desc = info[0].As<Napi::Object>();
+  FontDescriptor *descriptor = new FontDescriptor(env, desc);
+  Napi::Value res = wrapResult(env, findFont(descriptor));
+  delete descriptor;
+  return res;
+}
+
+Napi::Value substituteFontSync(const Napi::CallbackInfo &info)
+{
+  Napi::Env env = info.Env();
+
+  if (info.Length() < 1 || !info[0].IsString())
+    throw Napi::Error::New(env, "Expected postscript name");
+
+  if (info.Length() < 2 || !info[1].IsString())
+    throw Napi::Error::New(env, "Expected substitution string");
+
+  std::string postscriptName = info[0].As<Napi::String>().Utf8Value();
+  std::string substitutionString = info[1].As<Napi::String>().Utf8Value();
+
+  return wrapResult(env, substituteFont(postscriptName.c_str(), substitutionString.c_str()));
+}
+
+Napi::Object Init(Napi::Env env, Napi::Object exports)
+{
+  exports.Set(Napi::String::New(env, "getAvailableFontsSync"),
+              Napi::Function::New(env, getAvailableFontsSync));
+  exports.Set(Napi::String::New(env, "findFontsSync"),
+              Napi::Function::New(env, findFontsSync));
+  exports.Set(Napi::String::New(env, "findFontSync"),
+              Napi::Function::New(env, findFontSync));
+  exports.Set(Napi::String::New(env, "substituteFontSync"),
+              Napi::Function::New(env, substituteFontSync));
+  return exports;
+}
+
+NODE_API_MODULE(addon, Init)
