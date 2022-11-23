@@ -76,8 +76,10 @@ Napi::Value substituteFontSync(const Napi::CallbackInfo &info)
 
   std::string postscriptName = info[0].As<Napi::String>().Utf8Value();
   std::string substitutionString = info[1].As<Napi::String>().Utf8Value();
+  char *name = (char*)postscriptName.c_str();
+  char *subString = (char*)substitutionString.c_str();
 
-  return wrapResult(env, substituteFont(postscriptName.c_str(), substitutionString.c_str()));
+  return wrapResult(env, substituteFont(name, subString));
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports)
