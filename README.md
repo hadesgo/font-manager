@@ -1,11 +1,13 @@
 # font-querier
-A simple font querier
+A simple font querier nodejs addon
 
 改写自：https://github.com/foliojs/font-manager
 
+***
+
 必要条件：
-~ nodejs 14+
-~ node-gyp 9.0+
+* nodejs 14+
+* node-gyp 9.0+
 
 利用了 node-addon-api 改写了该库的C++代码，使用方法同上面的库，但是此版本只提供同步的方法。
 
