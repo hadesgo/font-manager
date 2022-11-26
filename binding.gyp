@@ -1,7 +1,7 @@
 {
     "targets": [
         {
-            "target_name": "fontmanager",
+            "target_name": "font-querier",
             "sources": ["src/FontManager.cc"],
             "include_dirs": ["<!@(node -p \"require('node-addon-api').include\")"],
             "dependencies": ["<!(node -p \"require('node-addon-api').gyp\")"],
@@ -19,7 +19,7 @@
                 [
                     'OS=="mac"',
                     {
-                        "sources": ["src/FontManagerMac.mm"],
+                        "sources": ["src/FontQuerierMac.mm"],
                         "link_settings": {
                             "libraries": ["CoreText.framework", "Foundation.framework"]
                         },
@@ -28,14 +28,14 @@
                 [
                     'OS=="win"',
                     {
-                        "sources": ["src/FontManagerWindows.cc"],
+                        "sources": ["src/FontQuerierWindows.cc"],
                         "link_settings": {"libraries": ["Dwrite.lib"]},
                     },
                 ],
                 [
                     'OS=="linux"',
                     {
-                        "sources": ["src/FontManagerLinux.cc"],
+                        "sources": ["src/FontQuerierLinux.cc"],
                         "link_settings": {"libraries": ["-lfontconfig"]},
                     },
                 ],

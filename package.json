@@ -1,10 +1,9 @@
 {
-  "name": "font-manager",
+  "name": "font-querier",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --napi-modules ./test/test_binding.js",
     "configure": "node-gyp configure",
     "clean": "node-gyp clean",
     "build": "node-gyp build"
