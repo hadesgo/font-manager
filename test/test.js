@@ -1,4 +1,4 @@
-const { getAvailableFontsSync, findFontsSync, substituteFontSync, findFontSync } = require('bindings')('fontmanager.node');
+const { getAvailableFontsSync, findFontsSync, substituteFontSync, findFontSync } = require('bindings')('font-querier.node');
 const util = require('util')
 
 console.log(util.inspect(getAvailableFontsSync()))
