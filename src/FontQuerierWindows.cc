@@ -5,17 +5,20 @@
 #include <unordered_set>
 
 // throws a JS error when there is some exception in DirectWrite
-#define HR(hr) \
-  if (FAILED(hr)) throw "Font loading error";
+#define HR(hr)    \
+  if (FAILED(hr)) \
+    throw "Font loading error";
 
-WCHAR *utf8ToUtf16(const char *input) {
+WCHAR *utf8ToUtf16(const char *input)
+{
   unsigned int len = MultiByteToWideChar(CP_UTF8, 0, input, -1, NULL, 0);
   WCHAR *output = new WCHAR[len];
   MultiByteToWideChar(CP_UTF8, 0, input, -1, output, len);
   return output;
 }
 
-char *utf16ToUtf8(const WCHAR *input) {
+char *utf16ToUtf8(const WCHAR *input)
+{
   unsigned int len = WideCharToMultiByte(CP_UTF8, 0, input, -1, NULL, 0, NULL, NULL);
   char *output = new char[len];
   WideCharToMultiByte(CP_UTF8, 0, input, -1, output, len, NULL, NULL);
@@ -23,7 +26,8 @@ char *utf16ToUtf8(const WCHAR *input) {
 }
 
 // returns the index of the user's locale in the set of localized strings
-unsigned int getLocaleIndex(IDWriteLocalizedStrings *strings) {
+unsigned int getLocaleIndex(IDWriteLocalizedStrings *strings)
+{
   unsigned int index = 0;
   BOOL exists = false;
   wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
@@ -32,12 +36,14 @@ unsigned int getLocaleIndex(IDWriteLocalizedStrings *strings) {
   int success = GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH);
 
   // If the default locale is returned, find that locale name, otherwise use "en-us".
-  if (success) {
+  if (success)
+  {
     HR(strings->FindLocaleName(localeName, &index, &exists));
   }
 
   // if the above find did not find a match, retry with US English
-  if (!exists) {
+  if (!exists)
+  {
     HR(strings->FindLocaleName(L"en-us", &index, &exists));
   }
 
@@ -48,18 +54,19 @@ unsigned int getLocaleIndex(IDWriteLocalizedStrings *strings) {
 }
 
 // gets a localized string for a font
-char *getString(IDWriteFont *font, DWRITE_INFORMATIONAL_STRING_ID string_id) {
+char *getString(IDWriteFont *font, DWRITE_INFORMATIONAL_STRING_ID string_id)
+{
   char *res = NULL;
   IDWriteLocalizedStrings *strings = NULL;
 
   BOOL exists = false;
   HR(font->GetInformationalStrings(
-    string_id,
-    &strings,
-    &exists
-  ));
+      string_id,
+      &strings,
+      &exists));
 
-  if (exists) {
+  if (exists)
+  {
     unsigned int index = getLocaleIndex(strings);
     unsigned int len = 0;
     WCHAR *str = NULL;
@@ -72,19 +79,21 @@ char *getString(IDWriteFont *font, DWRITE_INFORMATIONAL_STRING_ID string_id) {
     // convert to utf8
     res = utf16ToUtf8(str);
     delete str;
-    
+
     strings->Release();
   }
-  
-  if (!res) {
+
+  if (!res)
+  {
     res = new char[1];
     res[0] = '\0';
   }
-  
+
   return res;
 }
 
-FontDescriptor *resultFromFont(IDWriteFont *font) {
+FontDescriptor *resultFromFont(IDWriteFont *font)
+{
   FontDescriptor *res = NULL;
   IDWriteFontFace *face = NULL;
   unsigned int numFiles = 0;
@@ -97,7 +106,8 @@ FontDescriptor *resultFromFont(IDWriteFont *font) {
   HR(face->GetFiles(&numFiles, &files));
 
   // return the first one
-  if (numFiles > 0) {
+  if (numFiles > 0)
+  {
     IDWriteFontFileLoader *loader = NULL;
     IDWriteLocalFontFileLoader *fileLoader = NULL;
     unsigned int nameLength = 0;
@@ -109,7 +119,8 @@ FontDescriptor *resultFromFont(IDWriteFont *font) {
 
     // check if this is a local font file
     HRESULT hr = loader->QueryInterface(__uuidof(IDWriteLocalFontFileLoader), (void **)&fileLoader);
-    if (SUCCEEDED(hr)) {
+    if (SUCCEEDED(hr))
+    {
       // get the file path
       HR(files[0].GetReferenceKey(&referenceKey, &referenceKeySize));
       HR(fileLoader->GetFilePathLengthFromKey(referenceKey, referenceKeySize, &nameLength));
@@ -127,20 +138,20 @@ FontDescriptor *resultFromFont(IDWriteFont *font) {
 
       IDWriteFontFace1 *face1;
       HRESULT hr = face->QueryInterface(__uuidof(IDWriteFontFace1), (void **)&face1);
-      if (SUCCEEDED(hr)) {
+      if (SUCCEEDED(hr))
+      {
         monospace = face1->IsMonospacedFont() == TRUE;
       }
 
       res = new FontDescriptor(
-        psName,
-        postscriptName,
-        family,
-        style,
-        (FontWeight) font->GetWeight(),
-        (FontWidth) font->GetStretch(),
-        font->GetStyle() == DWRITE_FONT_STYLE_ITALIC,
-        monospace
-      );
+          psName,
+          postscriptName,
+          family,
+          style,
+          (FontWeight)font->GetWeight(),
+          (FontWidth)font->GetStretch(),
+          font->GetStyle() == DWRITE_FONT_STYLE_ITALIC,
+          monospace);
 
       delete psName;
       delete name;
@@ -159,16 +170,15 @@ FontDescriptor *resultFromFont(IDWriteFont *font) {
   return res;
 }
 
-ResultSet *getAvailableFonts() {
+ResultSet *getAvailableFonts()
+{
   ResultSet *res = new ResultSet();
-  int count = 0;
 
   IDWriteFactory *factory = NULL;
   HR(DWriteCreateFactory(
-    DWRITE_FACTORY_TYPE_SHARED,
-    __uuidof(IDWriteFactory),
-    reinterpret_cast<IUnknown**>(&factory)
-  ));
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      reinterpret_cast<IUnknown **>(&factory)));
 
   // Get the system font collection.
   IDWriteFontCollection *collection = NULL;
@@ -181,19 +191,22 @@ ResultSet *getAvailableFonts() {
   // using a set so we don't get any duplicates.
   std::unordered_set<std::string> psNames;
 
-  for (int i = 0; i < familyCount; i++) {
+  for (int i = 0; i < familyCount; i++)
+  {
     IDWriteFontFamily *family = NULL;
 
     // Get the font family.
     HR(collection->GetFontFamily(i, &family));
     int fontCount = family->GetFontCount();
 
-    for (int j = 0; j < fontCount; j++) {
+    for (int j = 0; j < fontCount; j++)
+    {
       IDWriteFont *font = NULL;
       HR(family->GetFont(j, &font));
 
       FontDescriptor *result = resultFromFont(font);
-      if (psNames.count(result->postscriptName) == 0) {
+      if (psNames.count(result->postscriptName) == 0)
+      {
         res->push_back(resultFromFont(font));
         psNames.insert(result->postscriptName);
       }
@@ -208,7 +221,58 @@ ResultSet *getAvailableFonts() {
   return res;
 }
 
-bool resultMatches(FontDescriptor *result, FontDescriptor *desc) {
+ResultSet *getAvailableFontsByFamily(WCHAR *fanuktName)
+{
+  ResultSet *res = new ResultSet();
+
+  IDWriteFactory *factory = NULL;
+  HR(DWriteCreateFactory(
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      reinterpret_cast<IUnknown **>(&factory)));
+
+  // Get the system font collection.
+  IDWriteFontCollection *collection = NULL;
+  HR(factory->GetSystemFontCollection(&collection));
+  UINT32 index;
+  BOOL exists;
+  HR(collection->FindFamilyName(fanuktName, &index, &exists));
+  if (exists)
+  {
+    // track postscript names we've already added
+    // using a set so we don't get any duplicates.
+    std::unordered_set<std::string> psNames;
+
+    IDWriteFontFamily *family = NULL;
+
+    // Get the font family.
+    HR(collection->GetFontFamily(index, &family));
+    int fontCount = family->GetFontCount();
+
+    for (int j = 0; j < fontCount; j++)
+    {
+      IDWriteFont *font = NULL;
+      HR(family->GetFont(j, &font));
+
+      FontDescriptor *result = resultFromFont(font);
+      if (psNames.count(result->postscriptName) == 0)
+      {
+        res->push_back(resultFromFont(font));
+        psNames.insert(result->postscriptName);
+      }
+    }
+
+    family->Release();
+  }
+
+  collection->Release();
+  factory->Release();
+
+  return res;
+}
+
+bool resultMatches(FontDescriptor *result, FontDescriptor *desc)
+{
   if (desc->postscriptName && strcmp(desc->postscriptName, result->postscriptName) != 0)
     return false;
 
@@ -233,14 +297,27 @@ bool resultMatches(FontDescriptor *result, FontDescriptor *desc) {
   return true;
 }
 
-ResultSet *findFonts(FontDescriptor *desc) {
-  ResultSet *fonts = getAvailableFonts();
+ResultSet *findFonts(FontDescriptor *desc)
+{
+  ResultSet *fonts;
+  if (desc->family == NULL)
+  {
+    fonts = getAvailableFonts();
+  }
+  else
+  {
+    fonts = getAvailableFontsByFamily(utf8ToUtf16(desc->family));
+  }
 
-  for (ResultSet::iterator it = fonts->begin(); it != fonts->end();) {
-    if (!resultMatches(*it, desc)) {
+  for (ResultSet::iterator it = fonts->begin(); it != fonts->end();)
+  {
+    if (!resultMatches(*it, desc))
+    {
       delete *it;
       it = fonts->erase(it);
-    } else {
+    }
+    else
+    {
       it++;
     }
   }
@@ -248,31 +325,34 @@ ResultSet *findFonts(FontDescriptor *desc) {
   return fonts;
 }
 
-FontDescriptor *findFont(FontDescriptor *desc) {
+FontDescriptor *findFont(FontDescriptor *desc)
+{
   ResultSet *fonts = findFonts(desc);
 
   // if we didn't find anything, try again with only the font traits, no string names
-  if (fonts->size() == 0) {
+  if (fonts->size() == 0)
+  {
     delete fonts;
 
     FontDescriptor *fallback = new FontDescriptor(
-      NULL, NULL, NULL, NULL, 
-      desc->weight, desc->width, desc->italic, false
-    );
+        NULL, NULL, NULL, NULL,
+        desc->weight, desc->width, desc->italic, false);
 
     fonts = findFonts(fallback);
   }
 
-  // ok, nothing. shouldn't happen often. 
+  // ok, nothing. shouldn't happen often.
   // just return the first available font
-  if (fonts->size() == 0) {
+  if (fonts->size() == 0)
+  {
     delete fonts;
     fonts = getAvailableFonts();
   }
 
   // hopefully we found something now.
   // copy and return the first result
-  if (fonts->size() > 0) {
+  if (fonts->size() > 0)
+  {
     FontDescriptor *res = new FontDescriptor(fonts->front());
     delete fonts;
     return res;
@@ -284,20 +364,23 @@ FontDescriptor *findFont(FontDescriptor *desc) {
 }
 
 // custom text renderer used to determine the fallback font for a given char
-class FontFallbackRenderer : public IDWriteTextRenderer {
+class FontFallbackRenderer : public IDWriteTextRenderer
+{
 public:
   IDWriteFontCollection *systemFonts;
   IDWriteFont *font;
   unsigned long refCount;
 
-  FontFallbackRenderer(IDWriteFontCollection *collection) {
+  FontFallbackRenderer(IDWriteFontCollection *collection)
+  {
     refCount = 0;
     collection->AddRef();
     systemFonts = collection;
     font = NULL;
   }
 
-  ~FontFallbackRenderer() {
+  ~FontFallbackRenderer()
+  {
     if (systemFonts)
       systemFonts->Release();
 
@@ -306,75 +389,92 @@ public:
   }
 
   // IDWriteTextRenderer methods
-  IFACEMETHOD(DrawGlyphRun)(
+  IFACEMETHOD(DrawGlyphRun)
+  (
       void *clientDrawingContext,
       FLOAT baselineOriginX,
       FLOAT baselineOriginY,
       DWRITE_MEASURING_MODE measuringMode,
       DWRITE_GLYPH_RUN const *glyphRun,
       DWRITE_GLYPH_RUN_DESCRIPTION const *glyphRunDescription,
-      IUnknown *clientDrawingEffect) {
+      IUnknown *clientDrawingEffect)
+  {
 
     // save the font that was actually rendered
     return systemFonts->GetFontFromFontFace(glyphRun->fontFace, &font);
   }
 
-  IFACEMETHOD(DrawUnderline)(
+  IFACEMETHOD(DrawUnderline)
+  (
       void *clientDrawingContext,
       FLOAT baselineOriginX,
       FLOAT baselineOriginY,
       DWRITE_UNDERLINE const *underline,
-      IUnknown *clientDrawingEffect) {
+      IUnknown *clientDrawingEffect)
+  {
     return E_NOTIMPL;
   }
 
-
-  IFACEMETHOD(DrawStrikethrough)(
+  IFACEMETHOD(DrawStrikethrough)
+  (
       void *clientDrawingContext,
       FLOAT baselineOriginX,
       FLOAT baselineOriginY,
       DWRITE_STRIKETHROUGH const *strikethrough,
-      IUnknown *clientDrawingEffect) {
+      IUnknown *clientDrawingEffect)
+  {
     return E_NOTIMPL;
   }
 
-
-  IFACEMETHOD(DrawInlineObject)(
+  IFACEMETHOD(DrawInlineObject)
+  (
       void *clientDrawingContext,
       FLOAT originX,
       FLOAT originY,
       IDWriteInlineObject *inlineObject,
       BOOL isSideways,
       BOOL isRightToLeft,
-      IUnknown *clientDrawingEffect) {
+      IUnknown *clientDrawingEffect)
+  {
     return E_NOTIMPL;
   }
 
   // IDWritePixelSnapping methods
-  IFACEMETHOD(IsPixelSnappingDisabled)(void *clientDrawingContext, BOOL *isDisabled) {
+  IFACEMETHOD(IsPixelSnappingDisabled)
+  (void *clientDrawingContext, BOOL *isDisabled)
+  {
     *isDisabled = FALSE;
     return S_OK;
   }
 
-  IFACEMETHOD(GetCurrentTransform)(void *clientDrawingContext, DWRITE_MATRIX *transform) {
+  IFACEMETHOD(GetCurrentTransform)
+  (void *clientDrawingContext, DWRITE_MATRIX *transform)
+  {
     const DWRITE_MATRIX ident = {1.0, 0.0, 0.0, 1.0, 0.0, 0.0};
     *transform = ident;
     return S_OK;
   }
 
-  IFACEMETHOD(GetPixelsPerDip)(void *clientDrawingContext, FLOAT *pixelsPerDip) {
+  IFACEMETHOD(GetPixelsPerDip)
+  (void *clientDrawingContext, FLOAT *pixelsPerDip)
+  {
     *pixelsPerDip = 1.0f;
     return S_OK;
   }
 
   // IUnknown methods
-  IFACEMETHOD_(unsigned long, AddRef)() {
+  IFACEMETHOD_(unsigned long, AddRef)
+  ()
+  {
     return InterlockedIncrement(&refCount);
   }
 
-  IFACEMETHOD_(unsigned long,  Release)() {
+  IFACEMETHOD_(unsigned long, Release)
+  ()
+  {
     unsigned long newCount = InterlockedDecrement(&refCount);
-    if (newCount == 0) {
+    if (newCount == 0)
+    {
       delete this;
       return 0;
     }
@@ -382,14 +482,23 @@ public:
     return newCount;
   }
 
-  IFACEMETHOD(QueryInterface)(IID const& riid, void **ppvObject) {
-    if (__uuidof(IDWriteTextRenderer) == riid) {
+  IFACEMETHOD(QueryInterface)
+  (IID const &riid, void **ppvObject)
+  {
+    if (__uuidof(IDWriteTextRenderer) == riid)
+    {
       *ppvObject = this;
-    } else if (__uuidof(IDWritePixelSnapping) == riid) {
+    }
+    else if (__uuidof(IDWritePixelSnapping) == riid)
+    {
       *ppvObject = this;
-    } else if (__uuidof(IUnknown) == riid) {
+    }
+    else if (__uuidof(IUnknown) == riid)
+    {
       *ppvObject = this;
-    } else {
+    }
+    else
+    {
       *ppvObject = nullptr;
       return E_FAIL;
     }
@@ -399,15 +508,15 @@ public:
   }
 };
 
-FontDescriptor *substituteFont(char *postscriptName, char *string) {
+FontDescriptor *substituteFont(char *postscriptName, char *string)
+{
   FontDescriptor *res = NULL;
 
   IDWriteFactory *factory = NULL;
   HR(DWriteCreateFactory(
-    DWRITE_FACTORY_TYPE_SHARED,
-    __uuidof(IDWriteFactory),
-    reinterpret_cast<IUnknown**>(&factory)
-  ));
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      reinterpret_cast<IUnknown **>(&factory)));
 
   // Get the system font collection.
   IDWriteFontCollection *collection = NULL;
@@ -420,36 +529,37 @@ FontDescriptor *substituteFont(char *postscriptName, char *string) {
 
   // create a text format object for this font
   IDWriteTextFormat *format = NULL;
-  if (font) {
+  if (font)
+  {
     WCHAR *familyName = utf8ToUtf16(font->family);
 
     // create a text format
     HR(factory->CreateTextFormat(
-      familyName,
-      collection,
-      (DWRITE_FONT_WEIGHT) font->weight,
-      font->italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
-      (DWRITE_FONT_STRETCH) font->width,
-      12.0,
-      L"en-us",
-      &format
-    ));
+        familyName,
+        collection,
+        (DWRITE_FONT_WEIGHT)font->weight,
+        font->italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+        (DWRITE_FONT_STRETCH)font->width,
+        12.0,
+        L"en-us",
+        &format));
 
     delete familyName;
     delete font;
-  } else {
+  }
+  else
+  {
     // this should never happen, but just in case, let the system
     // decide the default font in case findFont returned nothing.
     HR(factory->CreateTextFormat(
-      L"",
-      collection,
-      DWRITE_FONT_WEIGHT_REGULAR,
-      DWRITE_FONT_STYLE_NORMAL,
-      DWRITE_FONT_STRETCH_NORMAL,
-      12.0,
-      L"en-us",
-      &format
-    ));
+        L"",
+        collection,
+        DWRITE_FONT_WEIGHT_REGULAR,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        12.0,
+        L"en-us",
+        &format));
   }
 
   // convert utf8 string for substitution to utf16
@@ -458,20 +568,20 @@ FontDescriptor *substituteFont(char *postscriptName, char *string) {
   // create a text layout for the substitution string
   IDWriteTextLayout *layout = NULL;
   HR(factory->CreateTextLayout(
-    str,
-    wcslen(str),
-    format,
-    100.0,
-    100.0,
-    &layout
-  ));
+      str,
+      wcslen(str),
+      format,
+      100.0,
+      100.0,
+      &layout));
 
   // render it using a custom renderer that saves the physical font being used
   FontFallbackRenderer *renderer = new FontFallbackRenderer(collection);
   HR(layout->Draw(NULL, renderer, 100.0, 100.0));
 
   // if we found something, create a result object
-  if (renderer->font) {
+  if (renderer->font)
+  {
     res = resultFromFont(renderer->font);
   }
 
