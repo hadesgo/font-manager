@@ -155,7 +155,7 @@ int metricForMatch(CTFontDescriptorRef match, FontDescriptor *desc) {
   return metric;
 }
 
-ResultSet *findFonts(FontDescriptor *desc) {
+ResultSet *findFonts(FontDescriptor *desc, bool isCompareItalic, bool isCompareMonospace) {
   CTFontDescriptorRef descriptor = getFontDescriptor(desc);
   NSArray *matches = (NSArray *) CTFontDescriptorCreateMatchingFontDescriptors(descriptor, NULL);
   ResultSet *results = new ResultSet();
@@ -201,7 +201,7 @@ CTFontDescriptorRef findBest(FontDescriptor *desc, NSArray *matches) {
   return best;
 }
 
-FontDescriptor *findFont(FontDescriptor *desc) {  
+FontDescriptor *findFont(FontDescriptor *desc, bool isCompareItalic, bool isCompareMonospace) {  
   FontDescriptor *res = NULL;
   CTFontDescriptorRef descriptor = getFontDescriptor(desc);
   NSArray *matches = (NSArray *) CTFontDescriptorCreateMatchingFontDescriptors(descriptor, NULL);

@@ -5,8 +5,8 @@
 
 // these functions are implemented by the platform
 ResultSet *getAvailableFonts();
-ResultSet *findFonts(FontDescriptor *);
-FontDescriptor *findFont(FontDescriptor *);
+ResultSet *findFonts(FontDescriptor *, bool, bool);
+FontDescriptor *findFont(FontDescriptor *, bool, bool);
 FontDescriptor *substituteFont(char *, char *);
 
 // converts a ResultSet to a JavaScript array
@@ -48,7 +48,30 @@ Napi::Array findFontsSync(const Napi::CallbackInfo &info)
     throw Napi::Error::New(env, "Expected a font descriptor");
   Napi::Object desc = info[0].As<Napi::Object>();
   FontDescriptor *descriptor = new FontDescriptor(env, desc);
-  return collectResults(env, findFonts(descriptor));
+  bool isCompareItalic = false;
+  bool isCompareMonospace = false;
+
+  Napi::Value italic = desc.Get(Napi::String::New(env, "italic"));
+  if (!italic.IsEmpty() && italic.IsBoolean())
+  {
+    isCompareItalic = true;
+  }
+  else
+  {
+    isCompareItalic = false;
+  }
+
+  Napi::Value monospace = desc.Get(Napi::String::New(env, "monospace"));
+  if (!monospace.IsEmpty() && monospace.IsBoolean())
+  {
+    isCompareMonospace = true;
+  }
+  else
+  {
+    isCompareMonospace = false;
+  }
+
+  return collectResults(env, findFonts(descriptor, isCompareItalic, isCompareMonospace));
 }
 
 Napi::Value findFontSync(const Napi::CallbackInfo &info)
@@ -59,7 +82,30 @@ Napi::Value findFontSync(const Napi::CallbackInfo &info)
 
   Napi::Object desc = info[0].As<Napi::Object>();
   FontDescriptor *descriptor = new FontDescriptor(env, desc);
-  Napi::Value res = wrapResult(env, findFont(descriptor));
+  bool isCompareItalic = false;
+  bool isCompareMonospace = false;
+
+  Napi::Value italic = desc.Get(Napi::String::New(env, "italic"));
+  if (!italic.IsEmpty() && italic.IsBoolean())
+  {
+    isCompareItalic = true;
+  }
+  else
+  {
+    isCompareItalic = false;
+  }
+
+  Napi::Value monospace = desc.Get(Napi::String::New(env, "monospace"));
+  if (!monospace.IsEmpty() && monospace.IsBoolean())
+  {
+    isCompareMonospace = true;
+  }
+  else
+  {
+    isCompareMonospace = false;
+  }
+
+  Napi::Value res = wrapResult(env, findFont(descriptor, isCompareItalic, isCompareMonospace));
   delete descriptor;
   return res;
 }

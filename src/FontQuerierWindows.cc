@@ -271,7 +271,7 @@ ResultSet *getAvailableFontsByFamily(WCHAR *fanuktName)
   return res;
 }
 
-bool resultMatches(FontDescriptor *result, FontDescriptor *desc)
+bool resultMatches(FontDescriptor *result, FontDescriptor *desc, bool isCompareItalic, bool isCompareMonospace)
 {
   if (desc->postscriptName && strcmp(desc->postscriptName, result->postscriptName) != 0)
     return false;
@@ -288,16 +288,16 @@ bool resultMatches(FontDescriptor *result, FontDescriptor *desc)
   if (desc->width && desc->width != result->width)
     return false;
 
-  if (desc->italic != result->italic)
+  if (isCompareItalic && desc->italic != result->italic)
     return false;
 
-  if (desc->monospace != result->monospace)
+  if (isCompareMonospace && desc->monospace != result->monospace)
     return false;
 
   return true;
 }
 
-ResultSet *findFonts(FontDescriptor *desc)
+ResultSet *findFonts(FontDescriptor *desc, bool isCompareItalic, bool isCompareMonospace)
 {
   ResultSet *fonts;
   if (desc->family == NULL)
@@ -311,7 +311,7 @@ ResultSet *findFonts(FontDescriptor *desc)
 
   for (ResultSet::iterator it = fonts->begin(); it != fonts->end();)
   {
-    if (!resultMatches(*it, desc))
+    if (!resultMatches(*it, desc, isCompareItalic, isCompareMonospace))
     {
       delete *it;
       it = fonts->erase(it);
@@ -325,9 +325,9 @@ ResultSet *findFonts(FontDescriptor *desc)
   return fonts;
 }
 
-FontDescriptor *findFont(FontDescriptor *desc)
+FontDescriptor *findFont(FontDescriptor *desc, bool isCompareItalic, bool isCompareMonospace)
 {
-  ResultSet *fonts = findFonts(desc);
+  ResultSet *fonts = findFonts(desc, isCompareItalic, isCompareMonospace);
 
   // if we didn't find anything, try again with only the font traits, no string names
   if (fonts->size() == 0)
@@ -338,7 +338,7 @@ FontDescriptor *findFont(FontDescriptor *desc)
         NULL, NULL, NULL, NULL,
         desc->weight, desc->width, desc->italic, false);
 
-    fonts = findFonts(fallback);
+    fonts = findFonts(fallback, isCompareItalic, isCompareMonospace);
   }
 
   // ok, nothing. shouldn't happen often.
@@ -525,7 +525,7 @@ FontDescriptor *substituteFont(char *postscriptName, char *string)
   // find the font for the given postscript name
   FontDescriptor *desc = new FontDescriptor();
   desc->postscriptName = postscriptName;
-  FontDescriptor *font = findFont(desc);
+  FontDescriptor *font = findFont(desc, false, false);
 
   // create a text format object for this font
   IDWriteTextFormat *format = NULL;
